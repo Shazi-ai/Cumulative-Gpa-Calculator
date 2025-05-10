@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumulative GPA Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        secondary: '#8584E8',
+                        dark: {
+                            primary: '#5D5CDE',
+                            background: '#181818',
+                            card: '#222222',
+                            text: '#EEEEEE'
+                        },
+                        light: {
+                            primary: '#5D5CDE',
+                            background: '#FFFFFF',
+                            card: '#F5F5F5',
+                            text: '#333333'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-out'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        /* For dark mode */
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Page transitions */
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Input focus style */
+        .input-focus-effect:focus {
+            box-shadow: 0 0 0 3px rgba(93, 92, 222, 0.3);
+        }
+
+        /* Custom tooltip */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: max-content;
+            max-width: 200px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Toggle switch for dark mode */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #5D5CDE;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Card transition effects */
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark .card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Grade label styles */
+        .grade-badge {
+            display: inline-block;
+            width: 36px;
+            text-align: center;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .grade-A {
+            background-color: #d1f0d1;
+            color: #2a652a;
+        }
+        
+        .grade-B {
+            background-color: #d1e7f0;
+            color: #2a5165;
+        }
+        
+        .grade-C {
+            background-color: #f0e9d1;
+            color: #65582a;
+        }
+        
+        .grade-D {
+            background-color: #f0d8d1;
+            color: #652a2a;
+        }
+        
+        .grade-F {
+            background-color: #f0d1d1;
+            color: #652a2a;
+        }
+
+        .dark .grade-A {
+            background-color: rgba(42, 101, 42, 0.3);
+            color: #9de49d;
+        }
+        
+        .dark .grade-B {
+            background-color: rgba(42, 81, 101, 0.3);
+            color: #9dcceb;
+        }
+        
+        .dark .grade-C {
+            background-color: rgba(101, 88, 42, 0.3);
+            color: #ebd89d;
+        }
+        
+        .dark .grade-D {
+            background-color: rgba(101, 42, 42, 0.3);
+            color: #ebb09d;
+        }
+        
+        .dark .grade-F {
+            background-color: rgba(101, 42, 42, 0.3);
+            color: #eb9d9d;
+        }
+    </style>
+</head>
+<body class="bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text transition-colors duration-300">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header with navigation -->
+        <header class="bg-white dark:bg-dark-card shadow-md sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <h1 class="text-xl sm:text-2xl font-bold text-primary">
+                                <i class="fas fa-graduation-cap mr-2"></i>Cumulative GPA Calculator
+                            </h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav class="hidden md:flex space-x-1">
+                            <button onclick="showPage('calculator')" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">Calculator</button>
+                            <button onclick="showPage('trends')" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">Trends</button>
+                            <button onclick="showPage('guide')" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">Guide</button>
+                            <button onclick="showPage('about')" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">About</button>
+                        </nav>
+                        <div class="flex items-center">
+                            <span class="mr-2 text-sm hidden sm:inline">
+                                <i class="far fa-sun dark:hidden"></i>
+                                <i class="far fa-moon hidden dark:inline"></i>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <button id="mobileMenuButton" class="md:hidden text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Mobile menu -->
+                <div id="mobileMenu" class="md:hidden hidden pb-3">
+                    <div class="flex flex-col space-y-2">
+                        <button onclick="showPage('calculator')" class="mobile-nav-link px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">Calculator</button>
+                        <button onclick="showPage('trends')" class="mobile-nav-link px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">Trends</button>
+                        <button onclick="showPage('guide')" class="mobile-nav-link px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">Guide</button>
+                        <button onclick="showPage('about')" class="mobile-nav-link px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150">About</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <main class="flex-grow">
+            <!-- Welcome/Home Page - Shows only on first visit -->
+            <div id="welcome" class="page px-4 py-8 max-w-7xl mx-auto">
+                <div class="text-center animate-fade-in">
+                    <div class="mx-auto w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-graduation-cap text-4xl text-white"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold mb-4">Welcome to Cumulative GPA Calculator</h1>
+                    <p class="text-lg max-w-2xl mx-auto mb-8 text-gray-600 dark:text-gray-300">
+                        Track, calculate, and monitor your academic progress with our comprehensive GPA calculator designed for USA grading systems.
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6 mb-10">
+                    <div class="card bg-light-card dark:bg-dark-card rounded-lg shadow-md p-6 animate-slide-in" style="animation-delay: 0.1s">
+                        <div class="text-primary mb-4"><i class="fas fa-calculator text-3xl"></i></div>
+                        <h2 class="text-xl font-semibold mb-2">Easy Calculation</h2>
+                        <p class="text-gray-600 dark:text-gray-300">Calculate your semester and cumulative GPA using the standard American 4.0 scale with support for +/- grades.</p>
+                    </div>
+                    <div class="card bg-light-card dark:bg-dark-card rounded-lg shadow-md p-6 animate-slide-in" style="animation-delay: 0.2s">
+                        <div class="text-primary mb-4"><i class="fas fa-chart-line text-3xl"></i></div>
+                        <h2 class="text-xl font-semibold mb-2">Track Progress</h2>
+                        <p class="text-gray-600 dark:text-gray-300">Visualize your GPA trends across semesters to monitor your academic progress over time.</p>
+                    </div>
+                    <div class="card bg-light-card dark:bg-dark-card rounded-lg shadow-md p-6 animate-slide-in" style="animation-delay: 0.3s">
+                        <div class="text-primary mb-4"><i class="fas fa-save text-3xl"></i></div>
+                        <h2 class="text-xl font-semibold mb-2">Save Your Data</h2>
+                        <p class="text-gray-600 dark:text-gray-300">Save your course data right in your browser for easy access the next time you visit.</p>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="showPage('calculator')" class="px-6 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-md shadow-md hover:shadow-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        Get Started <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- GPA Calculator Page -->
+            <div id="calculator" class="page px-4 py-6 max-w-7xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-2xl md:text-3xl font-bold mb-2">Cumulative GPA Calculator</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Add your courses and calculate your GPA based on the standard US grading system.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Left column: Semester Manager -->
+                    <div class="md:col-span-1">
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4 flex justify-between items-center">
+                                <span>Semesters</span>
+                                <button id="addSemesterBtn" class="text-primary hover:text-secondary">
+                                    <i class="fas fa-plus-circle"></i>
+                                </button>
+                            </h2>
+                            <div id="semestersList" class="space-y-3 max-h-72 overflow-y-auto pr-2">
+                                <!-- Semesters will be added here -->
+                            </div>
+                        </div>
+
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                            <h2 class="text-xl font-semibold mb-4">Overall Stats</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium">Cumulative GPA</span>
+                                        <span id="cumulativeGPA" class="text-sm font-semibold">0.00</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                        <div id="cumulativeGPABar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">Total Credits</div>
+                                        <div id="totalCredits" class="text-lg font-semibold">0</div>
+                                    </div>
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">Total Courses</div>
+                                        <div id="totalCourses" class="text-lg font-semibold">0</div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">GPA Range</div>
+                                    <div id="gpaRange" class="text-sm font-medium">-</div>
+                                </div>
+                                <div class="flex justify-between">
+                                    <button id="exportDataBtn" class="text-sm px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                                        <i class="fas fa-download mr-1"></i> Export
+                                    </button>
+                                    <button id="importDataBtn" class="text-sm px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                                        <i class="fas fa-upload mr-1"></i> Import
+                                    </button>
+                                    <button id="clearAllDataBtn" class="text-sm px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800/30 transition">
+                                        <i class="fas fa-trash-alt mr-1"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right column: Current Semester Details -->
+                    <div class="md:col-span-2">
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h2 id="currentSemesterTitle" class="text-xl font-semibold">New Semester</h2>
+                                    <p id="semesterGPA" class="text-sm text-gray-500 dark:text-gray-400">GPA: 0.00</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input id="semesterName" type="text" placeholder="Semester Name" class="input-focus-effect text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:border-primary dark:focus:border-primary">
+                                    <button id="saveSemesterBtn" class="px-3 py-2 bg-primary hover:bg-secondary text-white rounded">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Course List -->
+                            <div id="courseListContainer" class="mb-4 max-h-96 overflow-y-auto pr-1">
+                                <table class="min-w-full">
+                                    <thead class="bg-gray-100 dark:bg-gray-800 sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Course</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Credits</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Grade</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Points</th>
+                                            <th class="px-4 py-2"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="courseList">
+                                        <!-- Course items will be added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Add Course Form -->
+                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-md p-4">
+                                <h3 class="text-md font-medium mb-3">Add New Course</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label for="courseName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course Name</label>
+                                        <input type="text" id="courseName" class="input-focus-effect text-base w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:border-primary dark:focus:border-primary" placeholder="e.g. Mathematics 101">
+                                    </div>
+                                    <div>
+                                        <label for="courseCredits" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Credits</label>
+                                        <input type="number" id="courseCredits" min="0" step="0.5" class="input-focus-effect text-base w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:border-primary dark:focus:border-primary" placeholder="e.g. 3">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label for="courseGrade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grade</label>
+                                        <select id="courseGrade" class="input-focus-effect text-base w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:outline-none focus:border-primary dark:focus:border-primary">
+                                            <option value="">Select Grade</option>
+                                            <option value="4.0">A+</option>
+                                            <option value="4.0">A</option>
+                                            <option value="3.7">A-</option>
+                                            <option value="3.3">B+</option>
+                                            <option value="3.0">B</option>
+                                            <option value="2.7">B-</option>
+                                            <option value="2.3">C+</option>
+                                            <option value="2.0">C</option>
+                                            <option value="1.7">C-</option>
+                                            <option value="1.3">D+</option>
+                                            <option value="1.0">D</option>
+                                            <option value="0.7">D-</option>
+                                            <option value="0">F</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="addCourseBtn" class="w-full px-4 py-2 bg-primary hover:bg-secondary text-white font-medium rounded focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors">
+                                            Add Course
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GPA Breakdown -->
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                            <h2 class="text-xl font-semibold mb-4">GPA Breakdown</h2>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+                                    <div class="text-xs text-green-700 dark:text-green-400">A Range</div>
+                                    <div id="aCount" class="text-lg font-semibold">0</div>
+                                </div>
+                                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                                    <div class="text-xs text-blue-700 dark:text-blue-400">B Range</div>
+                                    <div id="bCount" class="text-lg font-semibold">0</div>
+                                </div>
+                                <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+                                    <div class="text-xs text-yellow-700 dark:text-yellow-400">C Range</div>
+                                    <div id="cCount" class="text-lg font-semibold">0</div>
+                                </div>
+                                <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-md">
+                                    <div class="text-xs text-red-700 dark:text-red-400">D & F Range</div>
+                                    <div id="dfCount" class="text-lg font-semibold">0</div>
+                                </div>
+                            </div>
+                            <div class="h-40">
+                                <canvas id="gradeDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends Page -->
+            <div id="trends" class="page px-4 py-6 max-w-7xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-2xl md:text-3xl font-bold mb-2">GPA Trends</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Visualize your academic progress across semesters.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Left column: Summary and stats -->
+                    <div>
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4">Performance Overview</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium">Current Cumulative GPA</span>
+                                        <span id="trendsCumulativeGPA" class="text-sm font-semibold">0.00</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                        <div id="trendsCumulativeGPABar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">Highest GPA</div>
+                                        <div id="highestGPA" class="text-lg font-semibold">0.00</div>
+                                    </div>
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">Lowest GPA</div>
+                                        <div id="lowestGPA" class="text-lg font-semibold">0.00</div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">GPA Trend</div>
+                                    <div id="gpaTrend" class="text-sm font-medium flex items-center">
+                                        <span>No data available</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                            <h2 class="text-xl font-semibold mb-4">Achievement Status</h2>
+                            <div id="achievementStatus" class="space-y-4">
+                                <div id="honorsStatus" class="bg-gray-100 dark:bg-gray-800 rounded-md p-4 flex items-start gap-3">
+                                    <div class="text-yellow-500 mt-1"><i class="fas fa-award text-xl"></i></div>
+                                    <div>
+                                        <h3 class="font-medium">Latin Honors Status</h3>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                                            Based on your current GPA of <span id="honorsGPA">0.00</span>:
+                                        </p>
+                                        <p id="honorsLevel" class="text-sm font-medium mt-1">
+                                            Not eligible for Latin honors
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div id="deansList" class="bg-gray-100 dark:bg-gray-800 rounded-md p-4 flex items-start gap-3">
+                                    <div class="text-blue-500 mt-1"><i class="fas fa-list-alt text-xl"></i></div>
+                                    <div>
+                                        <h3 class="font-medium">Dean's List Status</h3>
+                                        <p id="deansListStatus" class="text-sm text-gray-600 dark:text-gray-400">
+                                            Add semester data to check Dean's List eligibility.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right column: Charts and visualizations -->
+                    <div class="md:col-span-2">
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4">GPA by Semester</h2>
+                            <div class="h-64">
+                                <canvas id="semesterGPAChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4">Cumulative GPA Progression</h2>
+                            <div class="h-64">
+                                <canvas id="cumulativeGPAChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                            <h2 class="text-xl font-semibold mb-4">Credit Hours by Semester</h2>
+                            <div class="h-64">
+                                <canvas id="creditHoursChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guide Page -->
+            <div id="guide" class="page px-4 py-6 max-w-7xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-2xl md:text-3xl font-bold mb-2">GPA Guide</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Learn about GPA calculation and academic standards in the USA.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Left column: FAQ -->
+                    <div>
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
+                            <div class="space-y-4">
+                                <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                    <h3 class="font-medium mb-2">What is GPA?</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        GPA (Grade Point Average) is a standard measure of academic achievement in US universities. It's calculated by dividing the total number of grade points earned by the total number of credit hours attempted.
+                                    </p>
+                                </div>
+                                
+                                <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                    <h3 class="font-medium mb-2">How is GPA calculated?</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        Each letter grade is assigned a numerical value (e.g., A = 4.0, B = 3.0). These values are multiplied by the credit hours for each course, then summed and divided by the total credit hours.
+                                    </p>
+                                </div>
+                                
+                                <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                    <h3 class="font-medium mb-2">What's a good GPA?</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        In most US colleges, a GPA of 3.0 or higher is considered good. A GPA of 3.5 or higher is often considered excellent. However, standards may vary between institutions and programs.
+                                    </p>
+                                </div>
+                                
+                                <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                    <h3 class="font-medium mb-2">What is Latin honors?</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        Latin honors are academic distinctions given to undergraduate students upon graduation:
+                                        <br>- Cum Laude: typically 3.5-3.7 GPA
+                                        <br>- Magna Cum Laude: typically 3.7-3.9 GPA
+                                        <br>- Summa Cum Laude: typically 3.9+ GPA
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="font-medium mb-2">What is the Dean's List?</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        The Dean's List is an academic honor given to students who achieve a high GPA in a given semester, usually 3.5 or higher while taking a minimum number of credit hours (typically 12+).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right column: Reference & Information -->
+                    <div class="md:col-span-2">
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4">US Grading System Reference</h2>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full">
+                                    <thead class="bg-gray-100 dark:bg-gray-800">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Letter Grade</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Percentage</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">GPA (4.0 Scale)</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Category</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">A+</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">97-100%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">4.0</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-A">A</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">A</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">93-96%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">4.0</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-A">A</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">A-</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">90-92%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">3.7</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-A">A</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">B+</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">87-89%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">3.3</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-B">B</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">B</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">83-86%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">3.0</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-B">B</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">B-</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">80-82%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">2.7</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-B">B</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">C+</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">77-79%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">2.3</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-C">C</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">C</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">73-76%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">2.0</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-C">C</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">C-</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">70-72%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">1.7</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-C">C</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">D+</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">67-69%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">1.3</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-D">D</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">D</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">63-66%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">1.0</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-D">D</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">D-</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">60-62%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">0.7</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-D">D</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2 whitespace-nowrap">F</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">Below 60%</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">0.0</td>
+                                            <td class="px-4 py-2 whitespace-nowrap"><span class="grade-badge grade-F">F</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5 mb-6">
+                            <h2 class="text-xl font-semibold mb-4">GPA Significance</h2>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                    <h3 class="font-medium mb-2">Academic Standing</h3>
+                                    <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                                        <li><span class="font-medium">3.9-4.0:</span> Excellent/Outstanding</li>
+                                        <li><span class="font-medium">3.7-3.89:</span> Very Good</li>
+                                        <li><span class="font-medium">3.5-3.69:</span> Good</li>
+                                        <li><span class="font-medium">3.0-3.49:</span> Satisfactory</li>
+                                        <li><span class="font-medium">2.0-2.99:</span> Acceptable</li>
+                                        <li><span class="font-medium">Below 2.0:</span> Academic probation in many institutions</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                        <h3 class="font-medium mb-2">Graduate School Admission</h3>
+                                        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                            <li><span class="font-medium">3.7+:</span> Competitive for top programs</li>
+                                            <li><span class="font-medium">3.5-3.7:</span> Strong for most programs</li>
+                                            <li><span class="font-medium">3.0-3.5:</span> Acceptable for many programs</li>
+                                            <li><span class="font-medium">Below 3.0:</span> May need other strong credentials</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                        <h3 class="font-medium mb-2">Job Market Considerations</h3>
+                                        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                            <li>Many employers use GPA as an initial screening tool</li>
+                                            <li>3.0+ often required for many entry-level positions</li>
+                                            <li>3.5+ may be required for competitive industries</li>
+                                            <li>GPA importance typically decreases with work experience</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                            <h2 class="text-xl font-semibold mb-4">How to Use This Calculator</h2>
+                            <div class="space-y-4">
+                                <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-3">
+                                    <li>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">Add a semester</span>
+                                        <p class="ml-5 mt-1">Click the "+" button in the Semesters section to create a new semester. Give it a descriptive name, like "Fall 2023".</p>
+                                    </li>
+                                    <li>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">Add courses to your semester</span>
+                                        <p class="ml-5 mt-1">For each course, enter the course name, number of credit hours, and the grade you received.</p>
+                                    </li>
+                                    <li>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">Save your semester</span>
+                                        <p class="ml-5 mt-1">After adding all courses, click the save button to store your semester data.</p>
+                                    </li>
+                                    <li>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">Add more semesters</span>
+                                        <p class="ml-5 mt-1">Repeat the process for additional semesters to track your cumulative GPA over time.</p>
+                                    </li>
+                                    <li>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">View your statistics</span>
+                                        <p class="ml-5 mt-1">Check the Overall Stats section to see your cumulative GPA and the Trends page to visualize your progress.</p>
+                                    </li>
+                                </ol>
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                                    <h3 class="font-medium text-blue-800 dark:text-blue-300 mb-2">💡 Tip</h3>
+                                    <p class="text-sm text-blue-700 dark:text-blue-400">
+                                        Your data is automatically saved in your browser. Use the Export feature to back up your data or if you plan to switch devices.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Page -->
+            <div id="about" class="page px-4 py-6 max-w-7xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-2xl md:text-3xl font-bold mb-2">About This Calculator</h1>
+                    <p class="text-gray-600 dark:text-gray-300">Learn more about this GPA calculator tool and how it works.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                        <h2 class="text-xl font-semibold mb-4">About This Tool</h2>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">
+                            This GPA Calculator is designed specifically for students in the United States educational system. It allows you to track your academic progress across multiple semesters, calculate your cumulative GPA, and visualize your performance over time.
+                        </p>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">
+                            The calculator supports the standard US 4.0 grading scale, including +/- grade modifiers, and weights courses by credit hours to provide an accurate calculation of your Grade Point Average.
+                        </p>
+                        <p class="text-gray-600 dark:text-gray-300">
+                            Your data is stored locally in your browser using modern web storage techniques. No data is sent to any server, ensuring your academic information remains private. You can export your data at any time for backup purposes or to transfer to another device.
+                        </p>
+                    </div>
+                    
+                    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                        <h2 class="text-xl font-semibold mb-4">Key Features</h2>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <div class="text-primary mr-3 mt-0.5"><i class="fas fa-check-circle"></i></div>
+                                <div>
+                                    <span class="font-medium">Multiple Semesters</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Track your academic progress across multiple terms or semesters.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <div class="text-primary mr-3 mt-0.5"><i class="fas fa-check-circle"></i></div>
+                                <div>
+                                    <span class="font-medium">USA Grading System</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Supports the standard American 4.0 scale with +/- grades.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <div class="text-primary mr-3 mt-0.5"><i class="fas fa-check-circle"></i></div>
+                                <div>
+                                    <span class="font-medium">Visual Analysis</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Chart your GPA trends and grade distribution for better insights.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <div class="text-primary mr-3 mt-0.5"><i class="fas fa-check-circle"></i></div>
+                                <div>
+                                    <span class="font-medium">Academic Achievement Tracking</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Monitor your eligibility for honors, dean's list, and other academic achievements.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <div class="text-primary mr-3 mt-0.5"><i class="fas fa-check-circle"></i></div>
+                                <div>
+                                    <span class="font-medium">Data Export/Import</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Easily backup or transfer your academic records between devices.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <div class="text-primary mr-3 mt-0.5"><i class="fas fa-check-circle"></i></div>
+                                <div>
+                                    <span class="font-medium">Privacy Focused</span>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Your data stays on your device and is never sent to any server.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-md p-5">
+                        <h2 class="text-xl font-semibold mb-4">GPA Calculation Method</h2>
+                        <div class="space-y-4">
+                            <p class="text-gray-600 dark:text-gray-300">
+                                This calculator uses the standard weighted GPA calculation method used by most US colleges and universities:
+                            </p>
+                            
+                            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                <h3 class="font-medium mb-2">Semester GPA Formula</h3>
+                                <div class="flex flex-col items-center">
+                                    <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                        Semester GPA = Σ(Grade Points × Credit Hours) ÷ Σ(Credit Hours)
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        Where Σ represents the sum across all courses in the semester
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                <h3 class="font-medium mb-2">Cumulative GPA Formula</h3>
+                                <div class="flex flex-col items-center">
+                                    <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                        Cumulative GPA = Σ(All Grade Points) ÷ Σ(All Credit Hours)
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        Where Σ represents the sum across all courses in all semesters
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <h3 class="font-medium mb-2">Example Calculation:</h3>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        <p>For a semester with these courses:</p>
+                                        <ul class="list-disc list-inside mt-2 ml-2 space-y-1">
+                                            <li>Math 101: A (4.0) - 3 credits = 12 points</li>
+                                            <li>English 203: B+ (3.3) - 4 credits = 13.2 points</li>
+                                            <li>Biology 150: A- (3.7) - 4 credits = 14.8 points</li>
+                                        </ul>
+                                        <div class="mt-3">
+                                            <p>Total Credits: 11</p>
+                                            <p>Total Points: 40</p>
+                                            <p>Semester GPA: 40 ÷ 11 = 3.64</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                                    <h3 class="font-medium text-blue-800 dark:text-blue-300 mb-2">Important Notes</h3>
+                                    <ul class="text-sm text-blue-700 dark:text-blue-400 space-y-2">
+                                        <li>This calculator uses the standard 4.0 scale common in US institutions.</li>
+                                        <li>Different institutions may have slight variations in their GPA systems.</li>
+                                        <li>Some schools may have different weights for honors or AP courses.</li>
+                                        <li>This calculator does not handle pass/fail courses in GPA calculation.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Import Modal -->
+            <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                <div class="bg-white dark:bg-dark-card rounded-lg shadow-xl max-w-md w-full mx-4">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-xl font-semibold">Import GPA Data</h2>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">
+                            Upload a previously exported GPA data file (.json format) to restore your academic records.
+                        </p>
+                        <div class="mb-4">
+                            <label for="importFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Select File
+                            </label>
+                            <input type="file" id="importFile" accept=".json" 
+                                class="block w-full text-sm text-gray-500 dark:text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-primary file:text-white
+                                hover:file:bg-secondary">
+                        </div>
+                        <div id="importError" class="text-red-500 text-sm mb-4 hidden"></div>
+                    </div>
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+                        <button id="cancelImportBtn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                            Cancel
+                        </button>
+                        <button id="confirmImportBtn" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded transition">
+                            Import Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmation Modal -->
+            <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                <div class="bg-white dark:bg-dark-card rounded-lg shadow-xl max-w-md w-full mx-4">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 id="confirmTitle" class="text-xl font-semibold">Confirm Action</h2>
+                    </div>
+                    <div class="p-4">
+                        <p id="confirmMessage" class="text-gray-600 dark:text-gray-300">
+                            Are you sure you want to proceed with this action?
+                        </p>
+                    </div>
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+                        <button id="cancelConfirmBtn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                            Cancel
+                        </button>
+                        <button id="confirmBtn" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition">
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white dark:bg-dark-card shadow-md mt-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            &copy; 2023 GPA Calculator | All data is stored locally on your device
+                        </p>
+                    </div>
+                    <div>
+                        <div class="flex space-x-4">
+                            <button onclick="showPage('calculator')" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary">Calculator</button>
+                            <button onclick="showPage('guide')" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary">Guide</button>
+                            <button onclick="showPage('about')" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary">About</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Data model
+        let state = {
+            semesters: [],
+            currentSemester: {
+                id: null,
+                name: "",
+                courses: []
+            },
+            activePage: "welcome",
+            firstVisit: true
+        };
+
+        // Check for dark mode preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('darkModeToggle').checked = true;
+        }
+        
+        // Dark mode toggle event listener
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('darkModeToggle').checked = true;
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('darkModeToggle').checked = false;
+            }
+        });
+
+        // DOM elements
+        const elements = {
+            pages: {
+                welcome: document.getElementById('welcome'),
+                calculator: document.getElementById('calculator'),
+                trends: document.getElementById('trends'),
+                guide: document.getElementById('guide'),
+                about: document.getElementById('about')
+            },
+            navigation: {
+                links: document.querySelectorAll('.nav-link'),
+                mobileLinks: document.querySelectorAll('.mobile-nav-link'),
+                mobileMenuButton: document.getElementById('mobileMenuButton'),
+                mobileMenu: document.getElementById('mobileMenu')
+            },
+            calculator: {
+                semestersList: document.getElementById('semestersList'),
+                currentSemesterTitle: document.getElementById('currentSemesterTitle'),
+                semesterGPA: document.getElementById('semesterGPA'),
+                semesterName: document.getElementById('semesterName'),
+                courseList: document.getElementById('courseList'),
+                courseName: document.getElementById('courseName'),
+                courseCredits: document.getElementById('courseCredits'),
+                courseGrade: document.getElementById('courseGrade'),
+                cumulativeGPA: document.getElementById('cumulativeGPA'),
+                cumulativeGPABar: document.getElementById('cumulativeGPABar'),
+                totalCredits: document.getElementById('totalCredits'),
+                totalCourses: document.getElementById('totalCourses'),
+                gpaRange: document.getElementById('gpaRange'),
+                addSemesterBtn: document.getElementById('addSemesterBtn'),
+                saveSemesterBtn: document.getElementById('saveSemesterBtn'),
+                addCourseBtn: document.getElementById('addCourseBtn'),
+                exportDataBtn: document.getElementById('exportDataBtn'),
+                importDataBtn: document.getElementById('importDataBtn'),
+                clearAllDataBtn: document.getElementById('clearAllDataBtn'),
+                aCount: document.getElementById('aCount'),
+                bCount: document.getElementById('bCount'),
+                cCount: document.getElementById('cCount'),
+                dfCount: document.getElementById('dfCount')
+            },
+            trends: {
+                semesterGPAChart: document.getElementById('semesterGPAChart'),
+                cumulativeGPAChart: document.getElementById('cumulativeGPAChart'),
+                creditHoursChart: document.getElementById('creditHoursChart'),
+                trendsCumulativeGPA: document.getElementById('trendsCumulativeGPA'),
+                trendsCumulativeGPABar: document.getElementById('trendsCumulativeGPABar'),
+                highestGPA: document.getElementById('highestGPA'),
+                lowestGPA: document.getElementById('lowestGPA'),
+                gpaTrend: document.getElementById('gpaTrend'),
+                honorsGPA: document.getElementById('honorsGPA'),
+                honorsLevel: document.getElementById('honorsLevel'),
+                deansListStatus: document.getElementById('deansListStatus')
+            },
+            gradeChart: document.getElementById('gradeDistributionChart'),
+            modals: {
+                importModal: document.getElementById('importModal'),
+                importFile: document.getElementById('importFile'),
+                importError: document.getElementById('importError'),
+                confirmImportBtn: document.getElementById('confirmImportBtn'),
+                cancelImportBtn: document.getElementById('cancelImportBtn'),
+                confirmModal: document.getElementById('confirmModal'),
+                confirmTitle: document.getElementById('confirmTitle'),
+                confirmMessage: document.getElementById('confirmMessage'),
+                confirmBtn: document.getElementById('confirmBtn'),
+                cancelConfirmBtn: document.getElementById('cancelConfirmBtn')
+            },
+            darkModeToggle: document.getElementById('darkModeToggle')
+        };
+
+        // Charts
+        let gradeDistributionChart = null;
+        let semesterGPAChart = null;
+        let cumulativeGPAChart = null;
+        let creditHoursChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            setupEventListeners();
+            renderSemesters();
+            updateStats();
+            checkFirstVisit();
+            createGradeDistributionChart();
+        });
+
+        // Show first time welcome or last page
+        function checkFirstVisit() {
+            const visited = localStorage.getItem('gpa_calculator_visited');
+            if (!visited) {
+                localStorage.setItem('gpa_calculator_visited', 'true');
+                showPage('welcome');
+            } else {
+                // Get the last active page or default to calculator
+                const lastPage = localStorage.getItem('gpa_calculator_last_page') || 'calculator';
+                showPage(lastPage);
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Dark mode toggle
+            elements.darkModeToggle.addEventListener('change', toggleDarkMode);
+            
+            // Mobile menu
+            elements.navigation.mobileMenuButton.addEventListener('click', toggleMobileMenu);
+            
+            // Add semester button
+            elements.calculator.addSemesterBtn.addEventListener('click', createNewSemester);
+            
+            // Save semester button
+            elements.calculator.saveSemesterBtn.addEventListener('click', saveSemester);
+            
+            // Add course button
+            elements.calculator.addCourseBtn.addEventListener('click', addCourse);
+            
+            // Data management buttons
+            elements.calculator.exportDataBtn.addEventListener('click', exportData);
+            elements.calculator.importDataBtn.addEventListener('click', () => toggleModal(elements.modals.importModal, true));
+            elements.calculator.clearAllDataBtn.addEventListener('click', confirmClearAllData);
+            
+            // Import modal buttons
+            elements.modals.confirmImportBtn.addEventListener('click', importData);
+            elements.modals.cancelImportBtn.addEventListener('click', () => toggleModal(elements.modals.importModal, false));
+            
+            // Confirm modal buttons
+            elements.modals.cancelConfirmBtn.addEventListener('click', () => toggleModal(elements.modals.confirmModal, false));
+        }
+
+        // Page Navigation
+        function showPage(pageName) {
+            // Hide all pages
+            Object.values(elements.pages).forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show selected page
+            elements.pages[pageName].classList.add('active');
+            
+            // Update navigation active state
+            elements.navigation.links.forEach(link => {
+                if (link.textContent.toLowerCase() === pageName) {
+                    link.classList.add('text-primary', 'font-semibold');
+                } else {
+                    link.classList.remove('text-primary', 'font-semibold');
+                }
+            });
+            
+            elements.navigation.mobileLinks.forEach(link => {
+                if (link.textContent.toLowerCase() === pageName) {
+                    link.classList.add('text-primary', 'font-semibold');
+                } else {
+                    link.classList.remove('text-primary', 'font-semibold');
+                }
+            });
+            
+            // Close mobile menu if open
+            if (elements.navigation.mobileMenu.classList.contains('block')) {
+                toggleMobileMenu();
+            }
+            
+            // Update state and localStorage
+            state.activePage = pageName;
+            localStorage.setItem('gpa_calculator_last_page', pageName);
+            
+            // Initialize charts if on trends page
+            if (pageName === 'trends') {
+                initTrendsCharts();
+                updateTrendsPage();
+            }
+        }
+
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            if (elements.navigation.mobileMenu.classList.contains('hidden')) {
+                elements.navigation.mobileMenu.classList.remove('hidden');
+                elements.navigation.mobileMenu.classList.add('block');
+            } else {
+                elements.navigation.mobileMenu.classList.add('hidden');
+                elements.navigation.mobileMenu.classList.remove('block');
+            }
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            if (elements.darkModeToggle.checked) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            
+            // Update charts if they exist
+            updateChartsTheme();
+        }
+
+        // Create a new semester
+        function createNewSemester() {
+            // Save current semester if it has data
+            if (state.currentSemester.id && state.currentSemester.courses.length > 0) {
+                saveSemester();
+            }
+            
+            // Create a new semester
+            const semesterId = 'sem_' + Date.now();
+            state.currentSemester = {
+                id: semesterId,
+                name: 'New Semester',
+                courses: []
+            };
+            
+            // Update UI
+            elements.calculator.currentSemesterTitle.textContent = 'New Semester';
+            elements.calculator.semesterName.value = 'New Semester';
+            elements.calculator.semesterGPA.textContent = 'GPA: 0.00';
+            elements.calculator.courseList.innerHTML = '';
+            
+            // Update grade distribution chart
+            updateGradeDistributionChart();
+            
+            // Highlight active semester
+            const semesterItems = elements.calculator.semestersList.querySelectorAll('.semester-item');
+            semesterItems.forEach(item => item.classList.remove('bg-gray-100', 'dark:bg-gray-800'));
+        }
+
+        // Save current semester
+        function saveSemester() {
+            if (!state.currentSemester.id) return;
+            
+            // Update semester name
+            state.currentSemester.name = elements.calculator.semesterName.value || 'Unnamed Semester';
+            
+            // Find if semester already exists
+            const existingIndex = state.semesters.findIndex(s => s.id === state.currentSemester.id);
+            
+            if (existingIndex >= 0) {
+                // Update existing semester
+                state.semesters[existingIndex] = {...state.currentSemester};
+            } else {
+                // Add new semester
+                state.semesters.push({...state.currentSemester});
+            }
+            
+            // Save data
+            saveData();
+            
+            // Update UI
+            renderSemesters();
+            updateStats();
+            showNotification('Semester saved successfully');
+        }
+
+        // Add course to current semester
+        function addCourse() {
+            const courseName = elements.calculator.courseName.value.trim();
+            const courseCredits = parseFloat(elements.calculator.courseCredits.value);
+            const courseGradeIndex = elements.calculator.courseGrade.selectedIndex;
+            const courseGradeText = courseGradeIndex > 0 ? elements.calculator.courseGrade.options[courseGradeIndex].text : '';
+            const courseGradeValue = parseFloat(elements.calculator.courseGrade.value);
+            
+            // Validate inputs
+            if (!courseName) {
+                showNotification('Please enter a course name', 'error');
+                return;
+            }
+            
+            if (isNaN(courseCredits) || courseCredits <= 0) {
+                showNotification('Please enter a valid number of credits', 'error');
+                return;
+            }
+            
+            if (isNaN(courseGradeValue)) {
+                showNotification('Please select a grade', 'error');
+                return;
+            }
+            
+            // Add course to current semester
+            const courseId = 'course_' + Date.now();
+            state.currentSemester.courses.push({
+                id: courseId,
+                name: courseName,
+                credits: courseCredits,
+                grade: courseGradeValue,
+                gradeText: courseGradeText
+            });
+            
+            // Update UI
+            renderCourses();
+            updateSemesterGPA();
+            updateGradeDistributionChart();
+            
+            // Clear input fields
+            elements.calculator.courseName.value = '';
+            elements.calculator.courseCredits.value = '';
+            elements.calculator.courseGrade.selectedIndex = 0;
+            elements.calculator.courseName.focus();
+        }
+
+        // Delete course
+        function deleteCourse(courseId) {
+            const courseIndex = state.currentSemester.courses.findIndex(c => c.id === courseId);
+            
+            if (courseIndex >= 0) {
+                state.currentSemester.courses.splice(courseIndex, 1);
+                renderCourses();
+                updateSemesterGPA();
+                updateGradeDistributionChart();
+            }
+        }
+
+        // Load semester
+        function loadSemester(semesterId) {
+            // Save current semester if it has changes
+            if (state.currentSemester.id && state.currentSemester.courses.length > 0) {
+                saveSemester();
+            }
+            
+            // Find semester
+            const semester = state.semesters.find(s => s.id === semesterId);
+            
+            if (semester) {
+                // Set as current semester
+                state.currentSemester = {...semester, courses: [...semester.courses]};
+                
+                // Update UI
+                elements.calculator.currentSemesterTitle.textContent = semester.name;
+                elements.calculator.semesterName.value = semester.name;
+                renderCourses();
+                updateSemesterGPA();
+                updateGradeDistributionChart();
+                
+                // Highlight active semester
+                const semesterItems = elements.calculator.semestersList.querySelectorAll('.semester-item');
+                semesterItems.forEach(item => {
+                    if (item.dataset.id === semesterId) {
+                        item.classList.add('bg-gray-100', 'dark:bg-gray-800');
+                    } else {
+                        item.classList.remove('bg-gray-100', 'dark:bg-gray-800');
+                    }
+                });
+            }
+        }
+
+        // Delete semester
+        function deleteSemester(semesterId) {
+            confirmAction(
+                'Delete Semester',
+                'Are you sure you want to delete this semester? This action cannot be undone.',
+                () => {
+                    const semesterIndex = state.semesters.findIndex(s => s.id === semesterId);
+                    
+                    if (semesterIndex >= 0) {
+                        state.semesters.splice(semesterIndex, 1);
+                        
+                        // If deleting current semester, create a new one
+                        if (state.currentSemester.id === semesterId) {
+                            createNewSemester();
+                        }
+                        
+                        // Save data
+                        saveData();
+                        
+                        // Update UI
+                        renderSemesters();
+                        updateStats();
+                        showNotification('Semester deleted successfully');
+                    }
+                }
+            );
+        }
+
+        // Render semesters list
+        function renderSemesters() {
+            elements.calculator.semestersList.innerHTML = '';
+            
+            if (state.semesters.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'text-sm text-gray-500 dark:text-gray-400 text-center py-2';
+                emptyMessage.textContent = 'No semesters yet. Click + to add your first semester.';
+                elements.calculator.semestersList.appendChild(emptyMessage);
+                return;
+            }
+            
+            state.semesters.forEach(semester => {
+                const semesterItem = document.createElement('div');
+                semesterItem.className = 'semester-item flex justify-between items-center p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/70 transition cursor-pointer';
+                semesterItem.dataset.id = semester.id;
+                
+                if (state.currentSemester.id === semester.id) {
+                    semesterItem.classList.add('bg-gray-100', 'dark:bg-gray-800');
+                }
+                
+                const semesterInfo = document.createElement('div');
+                semesterInfo.className = 'flex-grow';
+                
+                const semesterName = document.createElement('div');
+                semesterName.className = 'font-medium';
+                semesterName.textContent = semester.name;
+                
+                const semesterStats = document.createElement('div');
+                semesterStats.className = 'text-xs text-gray-500 dark:text-gray-400';
+                
+                const semesterGPA = calculateSemesterGPA(semester.courses);
+                const courseCount = semester.courses.length;
+                semesterStats.textContent = `GPA: ${semesterGPA.toFixed(2)} | Courses: ${courseCount}`;
+                
+                semesterInfo.appendChild(semesterName);
+                semesterInfo.appendChild(semesterStats);
+                
+                const semesterActions = document.createElement('div');
+                semesterActions.className = 'flex space-x-2';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    deleteSemester(semester.id);
+                });
+                
+                semesterActions.appendChild(deleteBtn);
+                
+                semesterItem.appendChild(semesterInfo);
+                semesterItem.appendChild(semesterActions);
+                
+                semesterItem.addEventListener('click', () => loadSemester(semester.id));
+                
+                elements.calculator.semestersList.appendChild(semesterItem);
+            });
+        }
+
+        // Render courses for current semester
+        function renderCourses() {
+            elements.calculator.courseList.innerHTML = '';
+            
+            if (state.currentSemester.courses.length === 0) {
+                const emptyRow = document.createElement('tr');
+                const emptyCell = document.createElement('td');
+                emptyCell.className = 'px-4 py-4 text-center text-gray-500 dark:text-gray-400';
+                emptyCell.colSpan = 5;
+                emptyCell.textContent = 'No courses added yet';
+                emptyRow.appendChild(emptyCell);
+                elements.calculator.courseList.appendChild(emptyRow);
+                return;
+            }
+            
+            state.currentSemester.courses.forEach(course => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors';
+                
+                // Course name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-4 py-3 whitespace-nowrap';
+                nameCell.textContent = course.name;
+                
+                // Credits cell
+                const creditsCell = document.createElement('td');
+                creditsCell.className = 'px-4 py-3 whitespace-nowrap';
+                creditsCell.textContent = course.credits;
+                
+                // Grade cell
+                const gradeCell = document.createElement('td');
+                gradeCell.className = 'px-4 py-3 whitespace-nowrap';
+                
+                // Get the letter grade class based on the grade value
+                let gradeClass = '';
+                if (course.grade >= 3.7) gradeClass = 'grade-A';
+                else if (course.grade >= 2.7) gradeClass = 'grade-B';
+                else if (course.grade >= 1.7) gradeClass = 'grade-C';
+                else if (course.grade >= 0.7) gradeClass = 'grade-D';
+                else gradeClass = 'grade-F';
+                
+                const gradeBadge = document.createElement('span');
+                gradeBadge.className = `grade-badge ${gradeClass}`;
+                gradeBadge.textContent = course.gradeText;
+                gradeCell.appendChild(gradeBadge);
+                
+                // Points cell
+                const pointsCell = document.createElement('td');
+                pointsCell.className = 'px-4 py-3 whitespace-nowrap';
+                const points = course.credits * course.grade;
+                pointsCell.textContent = points.toFixed(1);
+                
+                // Actions cell
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'px-4 py-3 whitespace-nowrap text-right';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300';
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+                deleteBtn.addEventListener('click', () => deleteCourse(course.id));
+                
+                actionsCell.appendChild(deleteBtn);
+                
+                // Append cells to row
+                row.appendChild(nameCell);
+                row.appendChild(creditsCell);
+                row.appendChild(gradeCell);
+                row.appendChild(pointsCell);
+                row.appendChild(actionsCell);
+                
+                // Append row to table
+                elements.calculator.courseList.appendChild(row);
+            });
+        }
+
+        // Update semester GPA
+        function updateSemesterGPA() {
+            const semesterGPA = calculateSemesterGPA(state.currentSemester.courses);
+            elements.calculator.semesterGPA.textContent = `GPA: ${semesterGPA.toFixed(2)}`;
+        }
+
+        // Update overall stats
+        function updateStats() {
+            const stats = calculateOverallStats();
+            
+            elements.calculator.cumulativeGPA.textContent = stats.cumulativeGPA.toFixed(2);
+            elements.calculator.cumulativeGPABar.style.width = `${Math.min(stats.cumulativeGPA / 4 * 100, 100)}%`;
+            
+            elements.calculator.totalCredits.textContent = stats.totalCredits;
+            elements.calculator.totalCourses.textContent = stats.totalCourses;
+            
+            // Determine GPA range description
+            let gpaRange = 'N/A';
+            if (stats.cumulativeGPA >= 3.9) {
+                gpaRange = 'Excellent (3.9-4.0)';
+            } else if (stats.cumulativeGPA >= 3.7) {
+                gpaRange = 'Very Good (3.7-3.89)';
+            } else if (stats.cumulativeGPA >= 3.5) {
+                gpaRange = 'Good (3.5-3.69)';
+            } else if (stats.cumulativeGPA >= 3.0) {
+                gpaRange = 'Satisfactory (3.0-3.49)';
+            } else if (stats.cumulativeGPA >= 2.0) {
+                gpaRange = 'Acceptable (2.0-2.99)';
+            } else if (stats.cumulativeGPA > 0) {
+                gpaRange = 'Needs Improvement (<2.0)';
+            }
+            
+            elements.calculator.gpaRange.textContent = gpaRange;
+            
+            // Update grade counts
+            elements.calculator.aCount.textContent = stats.gradeDistribution.A;
+            elements.calculator.bCount.textContent = stats.gradeDistribution.B;
+            elements.calculator.cCount.textContent = stats.gradeDistribution.C;
+            elements.calculator.dfCount.textContent = stats.gradeDistribution.DF;
+        }
+
+        // Calculate semester GPA
+        function calculateSemesterGPA(courses) {
+            if (!courses || courses.length === 0) return 0;
+            
+            let totalPoints = 0;
+            let totalCredits = 0;
+            
+            courses.forEach(course => {
+                totalPoints += course.credits * course.grade;
+                totalCredits += course.credits;
+            });
+            
+            return totalCredits > 0 ? totalPoints / totalCredits : 0;
+        }
+
+        // Calculate overall stats
+        function calculateOverallStats() {
+            let allCourses = [];
+            let gradeDistribution = { A: 0, B: 0, C: 0, DF: 0 };
+            
+            // Collect all courses
+            state.semesters.forEach(semester => {
+                allCourses = [...allCourses, ...semester.courses];
+            });
+            
+            // Count grade distribution
+            allCourses.forEach(course => {
+                if (course.grade >= 3.7) gradeDistribution.A++;
+                else if (course.grade >= 2.7) gradeDistribution.B++;
+                else if (course.grade >= 1.7) gradeDistribution.C++;
+                else gradeDistribution.DF++;
+            });
+            
+            const totalCourses = allCourses.length;
+            
+            // Calculate total credits
+            const totalCredits = allCourses.reduce((sum, course) => sum + course.credits, 0);
+            
+            // Calculate cumulative GPA
+            let totalPoints = 0;
+            allCourses.forEach(course => {
+                totalPoints += course.credits * course.grade;
+            });
+            
+            const cumulativeGPA = totalCredits > 0 ? totalPoints / totalCredits : 0;
+            
+            return {
+                totalCourses,
+                totalCredits,
+                cumulativeGPA,
+                gradeDistribution
+            };
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            try {
+                const savedData = localStorage.getItem('gpa_calculator_data');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    state.semesters = parsedData.semesters || [];
+                    
+                    // Create new semester if none exists
+                    if (!state.currentSemester.id) {
+                        createNewSemester();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            try {
+                localStorage.setItem('gpa_calculator_data', JSON.stringify({
+                    semesters: state.semesters
+                }));
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showNotification('Error saving data', 'error');
+            }
+        }
+
+        // Export data
+        function exportData() {
+            try {
+                // Create data object
+                const dataToExport = {
+                    semesters: state.semesters,
+                    exportDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                // Convert to JSON string
+                const jsonString = JSON.stringify(dataToExport, null, 2);
+                
+                // Create blob
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `gpa_data_${new Date().toISOString().split('T')[0]}.json`;
+                
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                
+                // Clean up
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Data exported successfully');
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                showNotification('Error exporting data', 'error');
+            }
+        }
+
+        // Import data
+        function importData() {
+            try {
+                const fileInput = elements.modals.importFile;
+                
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    elements.modals.importError.textContent = 'Please select a file.';
+                    elements.modals.importError.classList.remove('hidden');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                
+                if (file.type !== 'application/json') {
+                    elements.modals.importError.textContent = 'Please select a JSON file.';
+                    elements.modals.importError.classList.remove('hidden');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        // Validate data
+                        if (!importedData.semesters || !Array.isArray(importedData.semesters)) {
+                            throw new Error('Invalid data format');
+                        }
+                        
+                        // Import data
+                        state.semesters = importedData.semesters;
+                        saveData();
+                        
+                        // Reset current semester
+                        createNewSemester();
+                        
+                        // Update UI
+                        renderSemesters();
+                        updateStats();
+                        
+                        // Close modal
+                        toggleModal(elements.modals.importModal, false);
+                        
+                        showNotification('Data imported successfully');
+                    } catch (parseError) {
+                        console.error('Error parsing import data:', parseError);
+                        elements.modals.importError.textContent = 'Invalid JSON data. Please check your file.';
+                        elements.modals.importError.classList.remove('hidden');
+                    }
+                };
+                
+                reader.onerror = () => {
+                    elements.modals.importError.textContent = 'Error reading file.';
+                    elements.modals.importError.classList.remove('hidden');
+                };
+                
+                reader.readAsText(file);
+            } catch (error) {
+                console.error('Error importing data:', error);
+                elements.modals.importError.textContent = 'An error occurred during import.';
+                elements.modals.importError.classList.remove('hidden');
+            }
+        }
+
+        // Confirm clear all data
+        function confirmClearAllData() {
+            confirmAction(
+                'Reset All Data',
+                'Are you sure you want to reset all your GPA data? This will delete all semesters and courses. This action cannot be undone.',
+                clearAllData
+            );
+        }
+
+        // Clear all data
+        function clearAllData() {
+            // Clear data
+            state.semesters = [];
+            saveData();
+            
+            // Create new semester
+            createNewSemester();
+            
+            // Update UI
+            renderSemesters();
+            updateStats();
+            updateGradeDistributionChart();
+            
+            showNotification('All data has been reset');
+        }
+
+        // Initialize trends charts
+        function initTrendsCharts() {
+            if (!semesterGPAChart) {
+                // Semester GPA Chart
+                const semesterCtx = elements.trends.semesterGPAChart.getContext('2d');
+                semesterGPAChart = new Chart(semesterCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Semester GPA',
+                            data: [],
+                            backgroundColor: '#5D5CDE',
+                            borderColor: '#5D5CDE',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 4.0
+                            }
+                        }
+                    }
+                });
+            }
+            
+            if (!cumulativeGPAChart) {
+                // Cumulative GPA Chart
+                const cumulativeCtx = elements.trends.cumulativeGPAChart.getContext('2d');
+                cumulativeGPAChart = new Chart(cumulativeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Cumulative GPA',
+                            data: [],
+                            backgroundColor: 'rgba(93, 92, 222, 0.2)',
+                            borderColor: '#5D5CDE',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 4.0
+                            }
+                        }
+                    }
+                });
+            }
+            
+            if (!creditHoursChart) {
+                // Credit Hours Chart
+                const creditsCtx = elements.trends.creditHoursChart.getContext('2d');
+                creditHoursChart = new Chart(creditsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Credit Hours',
+                            data: [],
+                            backgroundColor: '#8584E8',
+                            borderColor: '#8584E8',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Create grade distribution chart
+        function createGradeDistributionChart() {
+            const ctx = elements.gradeChart.getContext('2d');
+            gradeDistributionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['A Range', 'B Range', 'C Range', 'D & F Range'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: [
+                            '#d1f0d1', // A - Light green
+                            '#d1e7f0', // B - Light blue
+                            '#f0e9d1', // C - Light yellow
+                            '#f0d1d1'  // D/F - Light red
+                        ],
+                        borderColor: [
+                            '#2a652a', // A - Dark green
+                            '#2a5165', // B - Dark blue
+                            '#65582a', // C - Dark yellow
+                            '#652a2a'  // D/F - Dark red
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update grade distribution chart
+        function updateGradeDistributionChart() {
+            if (!gradeDistributionChart) return;
+            
+            // Count grades for current semester
+            let gradeCount = {
+                A: 0, // 3.7-4.0
+                B: 0, // 2.7-3.6
+                C: 0, // 1.7-2.6
+                DF: 0 // 0-1.6
+            };
+            
+            state.currentSemester.courses.forEach(course => {
+                if (course.grade >= 3.7) gradeCount.A++;
+                else if (course.grade >= 2.7) gradeCount.B++;
+                else if (course.grade >= 1.7) gradeCount.C++;
+                else gradeCount.DF++;
+            });
+            
+            // Update chart
+            gradeDistributionChart.data.datasets[0].data = [
+                gradeCount.A,
+                gradeCount.B,
+                gradeCount.C,
+                gradeCount.DF
+            ];
+            
+            // Update chart colors for dark mode
+            updateChartColors(gradeDistributionChart);
+            
+            gradeDistributionChart.update();
+        }
+
+        // Update trends page
+        function updateTrendsPage() {
+            // Calculate data for charts
+            const chartData = calculateChartData();
+            
+            // Update semester GPA chart
+            if (semesterGPAChart) {
+                semesterGPAChart.data.labels = chartData.semesterNames;
+                semesterGPAChart.data.datasets[0].data = chartData.semesterGPAs;
+                updateChartColors(semesterGPAChart);
+                semesterGPAChart.update();
+            }
+            
+            // Update cumulative GPA chart
+            if (cumulativeGPAChart) {
+                cumulativeGPAChart.data.labels = chartData.semesterNames;
+                cumulativeGPAChart.data.datasets[0].data = chartData.cumulativeGPAs;
+                updateChartColors(cumulativeGPAChart);
+                cumulativeGPAChart.update();
+            }
+            
+            // Update credit hours chart
+            if (creditHoursChart) {
+                creditHoursChart.data.labels = chartData.semesterNames;
+                creditHoursChart.data.datasets[0].data = chartData.creditHours;
+                updateChartColors(creditHoursChart);
+                creditHoursChart.update();
+            }
+            
+            // Update trend stats
+            const stats = calculateOverallStats();
+            
+            elements.trends.trendsCumulativeGPA.textContent = stats.cumulativeGPA.toFixed(2);
+            elements.trends.trendsCumulativeGPABar.style.width = `${Math.min(stats.cumulativeGPA / 4 * 100, 100)}%`;
+            
+            // Find highest and lowest semester GPA
+            let highestGPA = 0;
+            let lowestGPA = 4.0;
+            let hasData = false;
+            
+            state.semesters.forEach(semester => {
+                if (semester.courses.length > 0) {
+                    hasData = true;
+                    const semesterGPA = calculateSemesterGPA(semester.courses);
+                    highestGPA = Math.max(highestGPA, semesterGPA);
+                    lowestGPA = Math.min(lowestGPA, semesterGPA);
+                }
+            });
+            
+            // Update highest/lowest GPA
+            elements.trends.highestGPA.textContent = hasData ? highestGPA.toFixed(2) : "0.00";
+            elements.trends.lowestGPA.textContent = hasData ? lowestGPA.toFixed(2) : "0.00";
+            
+            // Update GPA trend
+            if (!hasData) {
+                elements.trends.gpaTrend.innerHTML = `<span>No data available</span>`;
+            } else {
+                // Determine trend based on the last two semesters
+                if (chartData.semesterGPAs.length >= 2) {
+                    const lastGPA = chartData.semesterGPAs[chartData.semesterGPAs.length - 1];
+                    const secondLastGPA = chartData.semesterGPAs[chartData.semesterGPAs.length - 2];
+                    
+                    if (lastGPA > secondLastGPA) {
+                        elements.trends.gpaTrend.innerHTML = `
+                            <span class="text-green-600 dark:text-green-400 font-medium">Improving</span>
+                            <i class="fas fa-arrow-up ml-1 text-green-600 dark:text-green-400"></i>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(+${(lastGPA - secondLastGPA).toFixed(2)})</span>
+                        `;
+                    } else if (lastGPA < secondLastGPA) {
+                        elements.trends.gpaTrend.innerHTML = `
+                            <span class="text-red-600 dark:text-red-400 font-medium">Declining</span>
+                            <i class="fas fa-arrow-down ml-1 text-red-600 dark:text-red-400"></i>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(${(lastGPA - secondLastGPA).toFixed(2)})</span>
+                        `;
+                    } else {
+                        elements.trends.gpaTrend.innerHTML = `
+                            <span class="text-blue-600 dark:text-blue-400 font-medium">Stable</span>
+                            <i class="fas fa-equals ml-1 text-blue-600 dark:text-blue-400"></i>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(0.00)</span>
+                        `;
+                    }
+                } else {
+                    elements.trends.gpaTrend.innerHTML = `<span>Need more data</span>`;
+                }
+            }
+            
+            // Update honors status
+            elements.trends.honorsGPA.textContent = stats.cumulativeGPA.toFixed(2);
+            
+            if (stats.cumulativeGPA >= 3.9) {
+                elements.trends.honorsLevel.textContent = 'Summa Cum Laude (3.9+)';
+                elements.trends.honorsLevel.className = 'text-sm font-medium mt-1 text-yellow-600 dark:text-yellow-400';
+            } else if (stats.cumulativeGPA >= 3.7) {
+                elements.trends.honorsLevel.textContent = 'Magna Cum Laude (3.7-3.89)';
+                elements.trends.honorsLevel.className = 'text-sm font-medium mt-1 text-yellow-600 dark:text-yellow-400';
+            } else if (stats.cumulativeGPA >= 3.5) {
+                elements.trends.honorsLevel.textContent = 'Cum Laude (3.5-3.69)';
+                elements.trends.honorsLevel.className = 'text-sm font-medium mt-1 text-yellow-600 dark:text-yellow-400';
+            } else {
+                elements.trends.honorsLevel.textContent = 'Not eligible for Latin honors (below 3.5)';
+                elements.trends.honorsLevel.className = 'text-sm font-medium mt-1 text-gray-600 dark:text-gray-400';
+            }
+            
+            // Update Dean's List status
+            if (state.semesters.length === 0) {
+                elements.trends.deansListStatus.textContent = 'Add semester data to check Dean\'s List eligibility.';
+            } else {
+                // Count semesters with GPA >= 3.5 and at least 12 credit hours
+                let deansListCount = 0;
+                let totalSemesters = 0;
+                
+                state.semesters.forEach(semester => {
+                    if (semester.courses.length > 0) {
+                        totalSemesters++;
+                        
+                        const semesterGPA = calculateSemesterGPA(semester.courses);
+                        const semesterCredits = semester.courses.reduce((sum, course) => sum + course.credits, 0);
+                        
+                        if (semesterGPA >= 3.5 && semesterCredits >= 12) {
+                            deansListCount++;
+                        }
+                    }
+                });
+                
+                if (totalSemesters === 0) {
+                    elements.trends.deansListStatus.textContent = 'Add semester data to check Dean\'s List eligibility.';
+                } else {
+                    elements.trends.deansListStatus.innerHTML = `
+                        You've made the Dean's List in <span class="font-medium">${deansListCount}</span> out of <span class="font-medium">${totalSemesters}</span> semesters.
+                        <div class="text-xs mt-1 text-gray-500 dark:text-gray-400">
+                            Dean's List typically requires a GPA of 3.5+ with at least 12 credit hours.
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Calculate chart data
+        function calculateChartData() {
+            const data = {
+                semesterNames: [],
+                semesterGPAs: [],
+                cumulativeGPAs: [],
+                creditHours: []
+            };
+            
+            if (state.semesters.length === 0) {
+                return data;
+            }
+            
+            // Collect all courses across semesters
+            let allCourses = [];
+            
+            state.semesters.forEach(semester => {
+                // Add semester name
+                data.semesterNames.push(semester.name);
+                
+                // Calculate semester GPA
+                const semesterGPA = calculateSemesterGPA(semester.courses);
+                data.semesterGPAs.push(semesterGPA);
+                
+                // Calculate semester credit hours
+                const semesterCredits = semester.courses.reduce((sum, course) => sum + course.credits, 0);
+                data.creditHours.push(semesterCredits);
+                
+                // Add courses to all courses
+                allCourses = [...allCourses, ...semester.courses];
+                
+                // Calculate cumulative GPA up to this semester
+                let totalPoints = 0;
+                let totalCredits = 0;
+                
+                allCourses.forEach(course => {
+                    totalPoints += course.credits * course.grade;
+                    totalCredits += course.credits;
+                });
+                
+                const cumulativeGPA = totalCredits > 0 ? totalPoints / totalCredits : 0;
+                data.cumulativeGPAs.push(cumulativeGPA);
+            });
+            
+            return data;
+        }
+
+        // Update chart colors for dark mode
+        function updateChartColors(chart) {
+            if (!chart) return;
+            
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            
+            if (chart === gradeDistributionChart) {
+                chart.data.datasets[0].backgroundColor = isDarkMode ? 
+                    ['rgba(42, 101, 42, 0.3)', 'rgba(42, 81, 101, 0.3)', 'rgba(101, 88, 42, 0.3)', 'rgba(101, 42, 42, 0.3)'] :
+                    ['#d1f0d1', '#d1e7f0', '#f0e9d1', '#f0d1d1'];
+                
+                chart.data.datasets[0].borderColor = isDarkMode ?
+                    ['#9de49d', '#9dcceb', '#ebd89d', '#eb9d9d'] :
+                    ['#2a652a', '#2a5165', '#65582a', '#652a2a'];
+            }
+            
+            // Update grid and text colors
+            if (chart.options.scales && chart.options.scales.y) {
+                chart.options.scales.y.grid = {
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                };
+                chart.options.scales.y.ticks = {
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'
+                };
+            }
+            
+            if (chart.options.scales && chart.options.scales.x) {
+                chart.options.scales.x.grid = {
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                };
+                chart.options.scales.x.ticks = {
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'
+                };
+            }
+            
+            // Update legend colors
+            if (chart.options.plugins && chart.options.plugins.legend) {
+                chart.options.plugins.legend.labels = {
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)'
+                };
+            }
+        }
+
+        // Update charts for dark mode
+        function updateChartsTheme() {
+            updateChartColors(gradeDistributionChart);
+            updateChartColors(semesterGPAChart);
+            updateChartColors(cumulativeGPAChart);
+            updateChartColors(creditHoursChart);
+            
+            // Update the charts
+            if (gradeDistributionChart) gradeDistributionChart.update();
+            if (semesterGPAChart) semesterGPAChart.update();
+            if (cumulativeGPAChart) cumulativeGPAChart.update();
+            if (creditHoursChart) creditHoursChart.update();
+        }
+
+        // Toggle modal visibility
+        function toggleModal(modal, show) {
+            if (show) {
+                modal.classList.remove('hidden');
+                
+                // Reset error message if importing
+                if (modal === elements.modals.importModal) {
+                    elements.modals.importError.textContent = '';
+                    elements.modals.importError.classList.add('hidden');
+                    elements.modals.importFile.value = '';
+                }
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Confirm action with modal
+        function confirmAction(title, message, onConfirm) {
+            elements.modals.confirmTitle.textContent = title;
+            elements.modals.confirmMessage.textContent = message;
+            
+            // Set confirm button action
+            elements.modals.confirmBtn.onclick = () => {
+                onConfirm();
+                toggleModal(elements.modals.confirmModal, false);
+            };
+            
+            // Show modal
+            toggleModal(elements.modals.confirmModal, true);
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-md shadow-lg z-50 transform transition-all duration-300 ease-in-out translate-y-0 opacity-0`;
+            
+            // Set notification style based on type
+            if (type === 'success') {
+                notification.classList.add('bg-green-500', 'text-white');
+                notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-500', 'text-white');
+                notification.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${message}`;
+            } else {
+                notification.classList.add('bg-blue-500', 'text-white');
+                notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
+            }
+            
+            // Add to DOM
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.add('translate-y-0');
+                notification.classList.remove('opacity-0');
+                notification.classList.add('opacity-100');
+            }, 10);
+            
+            // Animate out after delay
+            setTimeout(() => {
+                notification.classList.remove('opacity-100');
+                notification.classList.add('opacity-0');
+                notification.classList.add('translate-y-4');
+                
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
